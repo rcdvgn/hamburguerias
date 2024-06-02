@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "127078555029",
+    "project_id": "trabalho-hamburguerias",
+    "storage_bucket": "trabalho-hamburguerias.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:127078555029:android:c4d7ea426686ff847aea9c",
+        "android_client_info": {
+          "package_name": "trabalho.hamburguerias"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCQ1iYNdyfvZVw0IEn1wnNzbi8zGJ-DbtE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
