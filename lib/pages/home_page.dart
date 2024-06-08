@@ -36,41 +36,39 @@ class _HomePageState extends State<HomePage> {
     if (name.isNotEmpty && description.isNotEmpty && address.isNotEmpty && number.isNotEmpty && price.isNotEmpty) {
       try {
         final existingHamburgueria = await _firestore
-              .collection('hamburguerias')
-              .where('name', isEqualTo: name)
-              .get();
+            .collection('hamburguerias')
+            .where('name', isEqualTo: name)
+            .get();
 
-          if (existingHamburgueria.docs.isNotEmpty) {
-            showDialog(
-              context: context,
-              builder: (context) {
-                return AlertDialog(
-                  title: const Text('Registro nao unico'),
-                  content: const Text('Altere o nome da sua hamburguria por algo mais original'),
-                  actions: <Widget>[
-                    TextButton(
-                      onPressed: () {
-                        Navigator.of(context).pop();
-                      },
-                      child: const Text('OK'),
-                    ),
-                  ],
-                );
-              },
-            );
-            return;
-          }
-          
+        if (existingHamburgueria.docs.isNotEmpty) {
+          showDialog(
+            context: context,
+            builder: (context) {
+              return AlertDialog(
+                title: const Text('Registro não único'),
+                content: const Text('Altere o nome da sua hamburgueria por algo mais original'),
+                actions: <Widget>[
+                  TextButton(
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                    },
+                    child: const Text('OK'),
+                  ),
+                ],
+              );
+            },
+          );
+          return;
+        }
+
         if (_editingHamburgueriaId == null) {
-          
-
           await _firestore.collection('hamburguerias').add({
             'name': name,
             'description': description,
             'address': address,
             'number': number,
             'price': int.parse(price),
-            'rating': [],
+            'ratings': [],
             'comments': [],
             'owner': user?.email,
           });
@@ -101,7 +99,7 @@ class _HomePageState extends State<HomePage> {
         context: context,
         builder: (context) {
           return AlertDialog(
-            title: const Text('Informacao incompleta'),
+            title: const Text('Informação incompleta'),
             content: const Text('Favor completar todos os campos.'),
             actions: <Widget>[
               TextButton(
@@ -128,6 +126,22 @@ class _HomePageState extends State<HomePage> {
       _isFormVisible = true;
     });
   }
+
+  double _calculateAverageRating(List<dynamic> ratings) {
+  if (ratings.isEmpty) {
+    return 0.0;
+  }
+  double total = 0.0;
+  int count = 0;
+  for (var rating in ratings) {
+    if (rating is num) {
+      total += rating;
+      count++;
+    }
+  }
+  return count > 0 ? total / count : 0.0;
+}
+
 
   Widget _title() {
     return const Text('Hamburguerias BelHell');
@@ -209,7 +223,7 @@ class _HomePageState extends State<HomePage> {
         TextField(
           controller: _addressController,
           decoration: InputDecoration(
-            labelText: 'Endereco da sua hamburgueria?',
+            labelText: 'Endereço da sua hamburgueria',
           ),
         ),
         TextField(
@@ -221,7 +235,7 @@ class _HomePageState extends State<HomePage> {
         TextField(
           controller: _priceController,
           decoration: InputDecoration(
-            labelText: 'Preco inteiro medio da sua hamburgueria',
+            labelText: 'Preço médio da sua hamburgueria',
           ),
         ),
         SizedBox(height: 10),
@@ -232,87 +246,97 @@ class _HomePageState extends State<HomePage> {
       ],
     );
   }
+  String _getAverageRating(List<dynamic> ratings) {
+    if (ratings.isEmpty) return 'Sem avaliações no momento';
+    double totalRating = 0.0;
+    for (var rating in ratings) {
+      totalRating += rating['rating'];
+    }
+    double averageRating = totalRating / ratings.length;
+    return averageRating.toStringAsFixed(2);
+  }
 
-  Widget _buildHamburgersList() {
-    return StreamBuilder<QuerySnapshot>(
-      stream: _firestore.collection('hamburguerias').snapshots(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
-        }
+ Widget _buildHamburgersList() {
+  return StreamBuilder<QuerySnapshot>(
+    stream: _firestore.collection('hamburguerias').snapshots(),
+    builder: (context, snapshot) {
+      if (snapshot.connectionState == ConnectionState.waiting) {
+        return const Center(child: CircularProgressIndicator());
+      }
 
-        if (snapshot.hasError) {
-          return Center(child: Text('Error: ${snapshot.error}'));
-        }
+      if (snapshot.hasError) {
+        return Center(child: Text('Error: ${snapshot.error}'));
+      }
 
-        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-          return const Center(child: Text('No hamburguerias found.'));
-        }
+      if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+        return const Center(child: Text('No hamburguerias found.'));
+      }
 
-        final documents = snapshot.data!.docs;
+      final documents = snapshot.data!.docs;
 
-        return ListView.builder(
-          itemCount: documents.length,
-          itemBuilder: (context, index) {
-            final doc = documents[index];
-            final data = doc.data() as Map<String, dynamic>;
-            final name = data['name'] ?? 'No name';
-            final description = data['description'] ?? 'No description';
-            final price = data['price'] ?? 'No price';
-            final ratings = data['ratings'] ?? [];
-            final comments = data['comments'] ?? [];
-            final number = data['number'] ?? 'No number';
-            final address = data['address'] ?? 'No address';
-            final owner = data['owner'] ?? 'No owner';
+      return ListView.builder(
+        itemCount: documents.length,
+        itemBuilder: (context, index) {
+          final doc = documents[index];
+          final data = doc.data() as Map<String, dynamic>;
+          final name = data['name'] ?? 'No name';
+          final description = data['description'] ?? 'No description';
+          final price = data['price'] ?? 'No price';
+          final ratings = data['ratings'] ?? [];
+          final comments = data['comments'] ?? [];
+          final number = data['number'] ?? 'No number';
+          final address = data['address'] ?? 'No address';
+          final owner = data['owner'] ?? 'No owner';
 
-         
+          final averageRating = _getAverageRating(ratings);
 
-            return ListTile(
-              title: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Expanded(
-                    child: GestureDetector(
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => HamburgerDetailsPage(
-                              name: name,
-                              description: description,
-                              price: price.toString(),
-                              ratings: ratings,
-                              number: number,
-                              address: address,
-                              comments: comments,
-                              docId: doc.id,
-                              currEmail: user?.email ?? ''
-                            ),
+          return ListTile(
+            title: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => HamburgerDetailsPage(
+                            name: name,
+                            description: description,
+                            price: price.toString(),
+                            ratings: ratings,
+                            number: number,
+                            address: address,
+                            comments: comments,
+                            docId: doc.id,
+                            currEmail: user?.email ?? ''
                           ),
-                        );
-                      },
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(name),
-                          Text(price.toString()),
-                        ],
-                      ),
+                        ),
+                      );
+                    },
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('$name (Rating: $averageRating)'),
+                        Text(price.toString()),
+                      ],
                     ),
                   ),
-                  if (owner == user?.email)
-                    IconButton(
-                      icon: Icon(Icons.edit),
-                      onPressed: () {
-                        _setEditingHamburgueria(data, doc.id);
-                      },
-                    ),
-                ],
-              ),
-            );
-          },
-        );
-      },
-    );
-  }
+                ),
+                if (owner == user?.email)
+                  IconButton(
+                    icon: Icon(Icons.edit),
+                    onPressed: () {
+                      _setEditingHamburgueria(data, doc.id);
+                    },
+                  ),
+              ],
+            ),
+          );
+        },
+      );
+    },
+  );
+}
+
 }
