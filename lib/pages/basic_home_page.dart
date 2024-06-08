@@ -52,7 +52,15 @@ class _HomePageState extends State<BasicHomePage> {
       ),
     );
   }
-
+  String _getAverageRating(List<dynamic> ratings) {
+      if (ratings.isEmpty) return 'Sem avaliações no momento';
+      double totalRating = 0.0;
+      for (var rating in ratings) {
+        totalRating += rating['rating'];
+      }
+      double averageRating = totalRating / ratings.length;
+      return averageRating.toStringAsFixed(2);
+    }
   Widget _buildHamburgersList() {
     return StreamBuilder<QuerySnapshot>(
       stream: _firestore.collection('hamburguerias').snapshots(),
@@ -83,7 +91,7 @@ class _HomePageState extends State<BasicHomePage> {
             final comments = data['comments'] ?? [];
             final number = data['number'] ?? 'No number';
             final address = data['address'] ?? 'No address';
-    
+            final averageRating = _getAverageRating(ratings);
 
             return GestureDetector(
               onTap: () {
@@ -104,10 +112,13 @@ class _HomePageState extends State<BasicHomePage> {
                   ),
                 );
               },
-              child: ListTile(
-                title: Text(name),
-                subtitle: Text(price.toString()),
-              ),
+               child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('$name (Rating: $averageRating)'),
+                        Text(price.toString()),
+                      ],
+                    ),
             );
           },
         );
